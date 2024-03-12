@@ -5,7 +5,6 @@ import os
 
 
 class RecommendationAssignment:
-
     def __init__(self):
         self.project_folder = os.path.dirname(__file__)
 
