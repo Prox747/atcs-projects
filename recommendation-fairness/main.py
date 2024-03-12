@@ -30,6 +30,7 @@ class RecommendationAssignment:
         self.ratings_df = pd.read_csv(ratings_file_path)
         self.tags_df = pd.read_csv(tags_file_path)
 
+    
     # Prints the first few rows of each table
     def print_df_heads(self):
         print("\n-------- LINKS.CSV --------")
