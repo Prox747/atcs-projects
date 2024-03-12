@@ -15,9 +15,7 @@ class RecommendationAssignment:
         self.users_ratings_mean = self.calc_users_ratings_mean()
         self.user_movie_ratings = self.create_user_ratings_groups()
 
-        print(utils.pearson_correlation(self.user_movie_ratings, self.users_ratings_mean, 45, 89))
-
-
+        self.example_similarity(45, 89)
 
     
     def create_data_frames(self):
@@ -75,6 +73,13 @@ class RecommendationAssignment:
             user_ratings[user_id] = ratings
         
         return user_ratings
+
+
+    def example_similarity(self, userA: int, userB: int):
+        similarity = utils.pearson_correlation(self.user_movie_ratings, self.users_ratings_mean, userA, userB)
+        print("\n\n_______________________EXAMPLE PEARSON SIMILARITY BETWEEN TWO USERS_____________________________")
+        print("\nThe similarity between user:" + str(userA) + " and user:" + str(userB) + " (using Pearson similarity) is: " + str(similarity))
+        print("________________________________________________________________________________________________\n")
 
 
 if __name__ == "__main__":
