@@ -20,10 +20,7 @@ class RecommendationAssignment:
         """
         print("#################  FIRST ASSIGNMENT  #################\n")
         
-        # inizialize dataframes
-        self.df_manager.initialize_dataframes()
-        
-        #point a - Shows the few rows of every table
+        #point a - Shows the few rows of every table and count of elements
         self.df_manager.show_dataset()
         
         # point b - Implemented the Pearson Correlation function and example
@@ -48,6 +45,9 @@ class RecommendationAssignment:
         # Shows for a random user, the 10 most similar users
         randomId = random.randint(1, self.df_manager.get_users_count())
         self.user_based_collaborative_filtering.show_top_x_similar_users(randomId, 10)
+
+        # Shows the top 10 predictions for the same user
+        self.user_based_collaborative_filtering.show_top_x_recommendations(randomId, 10)
                 
 
 

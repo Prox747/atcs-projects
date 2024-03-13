@@ -44,7 +44,7 @@ class UserBasedCollaborativeFiltering:
     
     
     # Calculates the top 'num_elements' similar users to the given userId
-    def show_top_x_similar_users(self, userId: int, num_elements: int):
+    def get_top_x_similar_users(self, userId: int, num_elements: int):
         similar_users = {}
         
         for otherId in range(1, self.df_manager.get_users_count()):
@@ -52,14 +52,75 @@ class UserBasedCollaborativeFiltering:
                 similar_users[otherId] = self.pearson_correlation(userId, otherId)
         
         # Sort the dictionary by values in descending order
+        # key=lambda x: x[1] -> sort by the value
         sorted_similar_users = sorted(similar_users.items(), key=lambda x: x[1], reverse=True)
         
         # Take the first 'num_elements'
-        top_similar_users = sorted_similar_users[:num_elements]
+        return sorted_similar_users[:num_elements]
+
+
+    # Shows the top 'num_elements' similar users to the given userId
+    def show_top_x_similar_users(self, userId: int, num_elements: int):
+        top_similar_users = self.get_top_x_similar_users(userId, num_elements)
         
-        print(f"I {num_elements} utenti più simili all'utente: {userId} sono:\n")
+        print(f"The top {num_elements} similar users to user: {userId} are:\n")
         for user, value in top_similar_users:
-            print(f"Utente {user}, sim_score: {value}")
+            print(f"User {user}, sim_score: {value}")
+    
+
+    # Calculates the top predicted ratings for the given userId
+    def get_top_x_recommendations(self, userId: int, num_elements: int):
+        # Get all movies that the user has not rated
+        movies_not_rated = self.df_manager.get_movies_not_rated_by_user(userId)
+        
+        # Calculate the predicted rating for each movie
+        predicted_ratings = []
+        for movie in movies_not_rated:
+            rating = self.predict_rating(userId, movie)
+            predicted_ratings.append((movie, rating))
+        
+        # Sort the dictionary by values in descending order
+        # key=lambda x: x[1] -> sort by the value
+        sorted_predicted_ratings = sorted(predicted_ratings, key=lambda x: x[1], reverse=True)
+        
+        # Take the first 'num_elements'
+        return sorted_predicted_ratings[:num_elements]
+
+
+    def predict_rating(self, userId, movieId):
+        # Get the top 'num_elements' similar users to the given userId
+        similar_users = self.get_top_x_similar_users(userId, 10)
+        
+        # Calculate the predicted rating for the given movie
+        numerator = 0
+        denominator = 0
+        for user, similarity in similar_users:
+            # Get the rating of the user for the movie
+            rating = self.df_manager.get_user_ratings_df(user)[self.df_manager.get_user_ratings_df(user)['movieId'] == movieId]['rating']
+            if len(rating) > 0:
+                # The user has rated the movie
+                rating = rating.values[0]
+                mean = self.df_manager.calc_user_ratings_mean(user)
+                numerator += similarity * (rating - mean)
+                denominator += abs(similarity)
+        
+        if denominator == 0:
+            return 0
+        
+        predicted_rating = self.df_manager.calc_user_ratings_mean(userId) + (numerator / denominator)
+        return predicted_rating
+        
+
+    # Shows the top 'num_elements' recommendations for the given userId
+    def show_top_x_recommendations(self, userId: int, num_elements: int):
+        # Get the top 'num_elements' recommendations for the given userId
+        recommendations = self.get_top_x_recommendations(userId, num_elements)
+        
+        print(f"\nThe top {num_elements} recommendations for user: {userId} are:\n")
+        for movie, rating in recommendations:
+            movieName = self.df_manager.get_movie(movie)['title'].values[0]
+            print(f"Movie: {movie}, Predicted Rating: {rating}")
+        
         
             
         

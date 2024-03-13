@@ -4,10 +4,9 @@ from pandasql import sqldf
 
 class DataFrameManager:
     def __init__(self):
-        self.links_df = None
-        self.movies_df = None
-        self.ratings_df = None
-        self.tags_df = None
+        self.initialize_dataframes()
+        self.ratings_grouped_by_user = self.ratings_df.groupby('userId')
+
     
     def initialize_dataframes(self):
         self.links_df = self.create_data_frame('links.csv')
@@ -15,11 +14,13 @@ class DataFrameManager:
         self.ratings_df = self.create_data_frame('ratings.csv')    
         self.tags_df = self.create_data_frame('tags.csv')
     
+
     def create_data_frame(self, file_name: str):
         project_folder = os.path.dirname(os.path.dirname(__file__))
         file_path = os.path.join(project_folder, 'data', file_name)
         return pd.read_csv(file_path)
     
+
     def show_dataset(self):
         print("\n-------- LINKS.CSV --------")
         print("Number of elements in links.csv:", len(self.links_df))
@@ -46,21 +47,35 @@ class DataFrameManager:
     def get_users_count(self):
          return len(set(self.ratings_df['userId']))
     
+    # Gets a movie by its ID
+    def get_movie(self, movieId: int):
+        return self.movies_df[self.movies_df['movieId'] == movieId]
+    
 
+    # Gets all movies that the user has not rated
+    def get_movies_not_rated_by_user(self, userId):
+        user_movies = set(self.ratings_df[self.ratings_df['userId'] == userId]['movieId'])
+        all_movies = set(self.movies_df['movieId'])
+        return list(all_movies - user_movies)
+
+    
+    # Gets the ratings for a particular user
     def calc_user_ratings_mean(self, userId: int):
         """
         Calculates the mean of ratings for a particular user
         """
-        grouped_by_user = self.ratings_df.groupby('userId')
-        return grouped_by_user.get_group(userId).rating.mean()
+        return self.ratings_grouped_by_user.get_group(userId).rating.mean()
 
-    def calc_users_ratings_mean(self):
+
+    # Gets the mean of ratings for each user
+    def get_users_ratings_mean(self):
         """
         Calculates the mean of ratings for each user
         """
-        grouped_by_user = self.ratings_df.groupby('userId')
-        return grouped_by_user.rating.mean()
+        return self.ratings_grouped_by_user.rating.mean()
 
+
+    # Gets the ratings for a particular user
     def get_user_ratings_df(self, userId: int):
         """
         Obtains a particular user's ratings dataframe.
@@ -68,8 +83,8 @@ class DataFrameManager:
         Returns:
             DataFrame: A dataframe userId,movieId,rating 
         """
-        grouped_by_user = self.ratings_df.groupby('userId')
-        return grouped_by_user.get_group(userId)
+        return self.ratings_grouped_by_user.get_group(userId)
+
 
     def get_common_movies_rated_by_users_as_map(self, userA: int, userB: int):
         """
