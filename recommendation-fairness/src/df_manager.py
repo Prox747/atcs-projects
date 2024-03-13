@@ -40,6 +40,12 @@ class DataFrameManager:
         print("Number of elements in tags.csv:", len(self.tags_df))
         print("First few rows of tags.csv:")
         print(self.tags_df.head())
+        
+    
+    # Gets the total number of users
+    def get_users_count(self):
+         return len(set(self.ratings_df['userId']))
+    
 
     def calc_user_ratings_mean(self, userId: int):
         """
