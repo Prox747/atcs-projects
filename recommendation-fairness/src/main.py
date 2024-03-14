@@ -57,7 +57,7 @@ class RecommendationAssignment:
 
         elapsed_time = end_time - start_time
 
-        print("Elapsed time:", elapsed_time, "seconds")
+        print("Time taken to calculate predictions:", elapsed_time, "seconds")
                 
 
 
