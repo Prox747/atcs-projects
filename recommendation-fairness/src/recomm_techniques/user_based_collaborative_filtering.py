@@ -50,6 +50,14 @@ class UserBasedCollaborativeFiltering:
         return similarity
     
     
+    def get_all_sim_for_user(self, userId: int):
+        """
+        Calculates and returns all the similarity values between
+        userId and all the other users
+        """
+        return self.get_top_x_similar_users(userId, self.df_manager.get_users_count())
+    
+    
     # Calculates the top 'num_elements' similar users to the given userId
     def get_top_x_similar_users(self, userId: int, num_elements: int):
         similar_users = {}
@@ -62,9 +70,9 @@ class UserBasedCollaborativeFiltering:
         # key=lambda x: x[1] -> sort by the value
         sorted_similar_users = sorted(similar_users.items(), key=lambda x: x[1], reverse=True)
         
-        # Take the first 'num_elements'
+        # Take the first 'num_elements' if requested, else give all the similarities
         return sorted_similar_users[:num_elements]
-
+    
 
     # Shows the top 'num_elements' similar users to the given userId
     def show_top_x_similar_users(self, userId: int, num_elements: int):
@@ -76,24 +84,18 @@ class UserBasedCollaborativeFiltering:
         print(result_df.to_string(index=False))
         
     
-
     # Calculates the top predicted ratings for the given userId
     def get_top_x_recommendations(self, userId: int, num_elements: int):
         # Get all movies that the user has not rated
-        # start = time.time()
         movies_not_rated = self.df_manager.get_movies_not_rated_by_user(userId)
-        # end = time.time()
-        # print(f"\nTime to calc movies not rated by user set: {end - start}")
         
-        # Get the top 30 similar users to the user
-        most_similar_users = self.get_top_x_similar_users(userId, 30)
-        
-        all_users_ratings_mean = self.df_manager.get_users_ratings_mean()
+        # Get all the similarity values for every (userId, otherId) pair
+        all_similarities_for_user = self.get_all_sim_for_user(userId)
         
         # Calculate the predicted rating for each movie
         predicted_ratings = []
         for movieId in movies_not_rated:
-            rating = self.predict_rating(userId, most_similar_users, all_users_ratings_mean, movieId)
+            rating = self.predict_rating(userId, all_similarities_for_user, movieId)
             predicted_ratings.append((movieId, rating))
         
         # Sort the dictionary by values in descending order
@@ -104,27 +106,26 @@ class UserBasedCollaborativeFiltering:
         return predicted_ratings[:num_elements]
 
 
-    def predict_rating(self, userId: int, similar_users: list[tuple], all_users_ratings_mean: pd.Series, movieId: int): 
+    def predict_rating(self, userId: int, similar_users: list[tuple], movieId: int): 
         # Calculate the predicted rating for the given movie
         numerator = 0
         denominator = 0
         
         for otherId, similarity in similar_users:
-            # Get the rating of the user for the movie (we actually get a series of rating of length 1)
-            user_ratings = self.df_manager.get_user_ratings_df(otherId)
-            rating = user_ratings[user_ratings['movieId'] == movieId]['rating']
+            # Get the rating of the user for the movie
+            user_ratings = self.df_manager.get_users_ratings_map().get(otherId)
+            rating = user_ratings.get(movieId)
             # For now we skip the user if it has not rated the movie
-            if len(rating) > 0:
+            if rating is not None:
                 # The user has rated the movie, we take the rating
-                rating = rating.values[0]
-                mean = all_users_ratings_mean[otherId]
+                mean = self.df_manager.calc_user_ratings_mean(otherId)
                 numerator += similarity * (rating - mean)
-                denominator += similarity
+                denominator += abs(similarity)
         
         if denominator == 0:
             return 0
         
-        predicted_rating = all_users_ratings_mean[userId] + (numerator / denominator)
+        predicted_rating = self.df_manager.calc_user_ratings_mean(otherId) + (numerator / denominator)
         return predicted_rating
         
 

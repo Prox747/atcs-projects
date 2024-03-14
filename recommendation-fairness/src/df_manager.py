@@ -1,12 +1,12 @@
 import os
 import time
 import pandas as pd
-from pandasql import sqldf
 
 class DataFrameManager:
     def __init__(self):
         self.initialize_dataframes()
         self.ratings_grouped_by_user = self.ratings_df.groupby('userId')
+        self.user2ratings = self.create_users_ratings_map()
 
     
     def initialize_dataframes(self):
@@ -76,7 +76,22 @@ class DataFrameManager:
         return self.ratings_grouped_by_user.rating.mean()
 
 
-    # Gets the ratings for a particular user
+    # Returns a map UserId2(MovieId2Ratings)
+    def create_users_ratings_map(self):
+        user_ratings = {}
+        for userId, user_df in self.ratings_grouped_by_user:
+            # Convert DataFrame to dictionary with movieId as key and rating as value
+            movie_rating_map = dict(zip(user_df['movieId'], user_df['rating']))
+            # Store the mapping for the user
+            user_ratings[userId] = movie_rating_map
+        return user_ratings
+    
+    
+    def get_users_ratings_map(self):
+        return self.user2ratings
+
+
+    # Gets the ratings dataframe for a particular user
     def get_user_ratings_df(self, userId: int):
         """
         Obtains a particular user's ratings dataframe.
@@ -85,6 +100,17 @@ class DataFrameManager:
             DataFrame: A dataframe userId,movieId,rating 
         """
         return self.ratings_grouped_by_user.get_group(userId)
+    
+    
+    # Gets the ratings for a particular user
+    def get_user_ratings_map(self, userId: int):
+        """
+        Obtains a particular user's ratings map.
+        
+        Returns:
+            Map: A map userId2(movieId2rating)
+        """
+        return self.user2ratings.get(userId)
 
 
     def get_common_movies_rated_by_users_as_map(self, userA: int, userB: int):
@@ -100,24 +126,19 @@ class DataFrameManager:
             
         Returns:
             dict: A dictionary mapping movie IDs to tuples of ratings for userA and userB.
-        """
-        userdfA = self.get_user_ratings_df(userA)
-        userdfB = self.get_user_ratings_df(userB)
+        """ 
+        # Get the rating dictionaries for the two users
+        ratings_userA = self.user2ratings.get(userA, {})
+        ratings_userB = self.user2ratings.get(userB, {})
         
-        # Define the SQL query to get movie ratings for the two users
-        query = f"""
-        SELECT a.movieId, a.rating AS rating_userA, b.rating AS rating_userB
-        FROM userdfA AS a
-        INNER JOIN userdfB AS b ON a.movieId = b.movieId
-        WHERE a.userId = {userA} AND b.userId = {userB}
-        """
+        # Find common movies between the two users
+        common_movies = set(ratings_userA.keys()) & set(ratings_userB.keys())
         
-        # Execute the query using pandasql
-        result_df = sqldf(query, locals())
+        # Create a map of common movie ratings for userA and userB
+        common_movies_ratings_map = {}
+        for movieId in common_movies:
+            rating_userA = ratings_userA.get(movieId)
+            rating_userB = ratings_userB.get(movieId)
+            common_movies_ratings_map[movieId] = (rating_userA, rating_userB)
         
-        # Convert the result DataFrame to a dictionary
-        movie_ratings_map = {}
-        for index, row in result_df.iterrows():
-            movie_ratings_map[row['movieId']] = (row['rating_userA'], row['rating_userB'])
-        
-        return movie_ratings_map
+        return common_movies_ratings_map
