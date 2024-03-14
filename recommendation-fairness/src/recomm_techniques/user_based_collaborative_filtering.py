@@ -121,7 +121,7 @@ class UserBasedCollaborativeFiltering:
             if rating is not None:
                 mean = self.df_manager.calc_user_ratings_mean(otherId)
                 numerator += similarity * (rating - mean)
-                denominator += abs(similarity)
+                denominator += similarity
         
         if denominator == 0:
             return 0
