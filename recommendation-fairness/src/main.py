@@ -1,3 +1,4 @@
+import time
 import pandas as pd
 import random
 import os
@@ -47,7 +48,13 @@ class RecommendationAssignment:
         self.user_based_collaborative_filtering.show_top_x_similar_users(randomId, 10)
 
         # Shows the top 10 predictions for the same user
+        start_time = time.time()
         self.user_based_collaborative_filtering.show_top_x_recommendations(randomId, 10)
+        end_time = time.time()
+
+        elapsed_time = end_time - start_time
+
+        print("Elapsed time:", elapsed_time, "seconds")
                 
 
 

@@ -1,5 +1,7 @@
 import math
 import random
+import time
+import pandas as pd
 
 from numpy import sort
 from df_manager import DataFrameManager
@@ -39,6 +41,11 @@ class UserBasedCollaborativeFiltering:
             return 0
         
         similarity = numerator / denominator
+        
+        # At times, because of float imprecision, it becomes
+        # sim = 1.000000002 or -1.000000002, we want it rounded
+        if similarity > 1 or similarity < -1:
+            math.ceil(similarity)
 
         return similarity
     
@@ -63,53 +70,61 @@ class UserBasedCollaborativeFiltering:
     def show_top_x_similar_users(self, userId: int, num_elements: int):
         top_similar_users = self.get_top_x_similar_users(userId, num_elements)
         
-        print(f"The top {num_elements} similar users to user: {userId} are:")
-        for user, value in top_similar_users:
-            print(f"User {user}, sim_score: {value}")
+        result_df = pd.DataFrame(top_similar_users, columns=['UserId', 'Similarity'])
+        
+        print(f"The top {num_elements} similar users to user {userId} are:")
+        print(result_df.to_string(index=False))
+        
     
 
     # Calculates the top predicted ratings for the given userId
     def get_top_x_recommendations(self, userId: int, num_elements: int):
         # Get all movies that the user has not rated
+        # start = time.time()
         movies_not_rated = self.df_manager.get_movies_not_rated_by_user(userId)
+        # end = time.time()
+        # print(f"\nTime to calc movies not rated by user set: {end - start}")
+        
         # Get the top 30 similar users to the user
-        most_similar_users = self.get_top_x_similar_users(userId, 30) 
+        most_similar_users = self.get_top_x_similar_users(userId, 30)
+        
+        all_users_ratings_mean = self.df_manager.get_users_ratings_mean()
         
         # Calculate the predicted rating for each movie
         predicted_ratings = []
         for movieId in movies_not_rated:
-            rating = self.predict_rating(userId, most_similar_users, movieId)
+            rating = self.predict_rating(userId, most_similar_users, all_users_ratings_mean, movieId)
             predicted_ratings.append((movieId, rating))
         
         # Sort the dictionary by values in descending order
         # key=lambda x: x[1] -> sort by the value
-        sorted_predicted_ratings = sorted(predicted_ratings, key=lambda x: x[1], reverse=True)
+        predicted_ratings.sort(key=lambda x: x[1], reverse=True)
         
         # Take the first 'num_elements'
-        return sorted_predicted_ratings[:num_elements]
+        return predicted_ratings[:num_elements]
 
 
-    def predict_rating(self, userId: int, similar_users: list[tuple], movieId: int): 
+    def predict_rating(self, userId: int, similar_users: list[tuple], all_users_ratings_mean: pd.Series, movieId: int): 
         # Calculate the predicted rating for the given movie
         numerator = 0
         denominator = 0
         
-        for user, similarity in similar_users:
+        for otherId, similarity in similar_users:
             # Get the rating of the user for the movie (we actually get a series of rating of length 1)
-            user_ratings = self.df_manager.get_user_ratings_df(user)
+            user_ratings = self.df_manager.get_user_ratings_df(otherId)
             rating = user_ratings[user_ratings['movieId'] == movieId]['rating']
             # For now we skip the user if it has not rated the movie
             if len(rating) > 0:
                 # The user has rated the movie, we take the rating
                 rating = rating.values[0]
-                mean = self.df_manager.calc_user_ratings_mean(user)
+                mean = all_users_ratings_mean[otherId]
                 numerator += similarity * (rating - mean)
                 denominator += similarity
         
         if denominator == 0:
             return 0
         
-        predicted_rating = self.df_manager.calc_user_ratings_mean(userId) + (numerator / denominator)
+        predicted_rating = all_users_ratings_mean[userId] + (numerator / denominator)
         return predicted_rating
         
 
@@ -118,13 +133,10 @@ class UserBasedCollaborativeFiltering:
         # Get the top 'num_elements' recommendations for the given userId
         recommendations = self.get_top_x_recommendations(userId, num_elements)
         
-        print(f"\nThe top {num_elements} recommendations for user: {userId} are:\n")
-        print("Movie title   |   Predicted Rating")
-        print("----------------------------------")
-        for movie, rating in recommendations:
-            movieName = self.df_manager.get_movie(movie)['title'].values[0]
-            print(f"{movieName}   |   {rating}")
-        
+        result_df = pd.DataFrame(recommendations, columns=['Movie Title', 'Predicted Rating'])
+
+        print(f"\nThe top {num_elements} recommendations for user {userId} are:")
+        print(result_df.to_string(index=False))
         
             
         

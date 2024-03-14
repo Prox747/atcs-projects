@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 from pandasql import sqldf
 
@@ -54,7 +55,7 @@ class DataFrameManager:
 
     # Gets all movies that the user has not rated
     def get_movies_not_rated_by_user(self, userId):
-        user_movies = set(self.ratings_df[self.ratings_df['userId'] == userId]['movieId'])
+        user_movies = set(self.get_user_ratings_df(userId)['movieId'])
         all_movies = set(self.movies_df['movieId'])
         return list(all_movies - user_movies)
 
