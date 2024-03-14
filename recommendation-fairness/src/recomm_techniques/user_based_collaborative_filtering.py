@@ -108,7 +108,7 @@ class UserBasedCollaborativeFiltering:
         return predicted_ratings[:num_elements]
 
 
-    def predict_rating(self, userId: int, similar_users: list[tuple], movieId: int): 
+    def predict_rating(self, userId: int, similar_users: list[tuple], movieId: int, steps: int = 0): 
         # Calculate the predicted rating for the given movie
         numerator = 0
         denominator = 0
@@ -119,7 +119,6 @@ class UserBasedCollaborativeFiltering:
             rating = user_ratings.get(movieId)
             # For now we skip the user if it has not rated the movie
             if rating is not None:
-                # The user has rated the movie, we take the rating
                 mean = self.df_manager.calc_user_ratings_mean(otherId)
                 numerator += similarity * (rating - mean)
                 denominator += abs(similarity)
@@ -145,7 +144,8 @@ class UserBasedCollaborativeFiltering:
         # Create DataFrame from recommendations with movie titles
         result_df = pd.DataFrame(recommendations_with_titles, columns=['Movie Title', 'Predicted Rating'])
 
-        print(f"\nThe top {num_elements} recommendations for user {userId} are:")
+        print(f"\nThe top {num_elements} recommendations for user {userId}")
+        print(f"(for a neighbourhood of {neighbourhood_size if neighbourhood_size is not -1 else 'all the'} users):")
         print(result_df.to_string(index=False))
         
             

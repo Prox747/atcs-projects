@@ -48,18 +48,13 @@ class RecommendationAssignment:
         self.user_based_collaborative_filtering.show_top_x_similar_users(randomId, 10)
 
         # Shows the top 10 predictions for the same user
-        print("\n\n(The prediction function implementation takes in account all the\n" + 
-              " similarities between the user we want to suggest movies to and \n" +
-              " all the other users - so it might take a few seconds to output )")  
+        # Neighbourhood size = 50
         start_time = time.time()
-        self.user_based_collaborative_filtering.show_top_x_recommendations(randomId, 10)
+        self.user_based_collaborative_filtering.show_top_x_recommendations(randomId, 10, 50)
         end_time = time.time()
-
-        elapsed_time = end_time - start_time
-
-        print("Time taken to calculate predictions:", elapsed_time, "seconds")
-                
-
+        print("Time taken to calculate predictions:", end_time - start_time, "seconds")
+        
+        
 
 if __name__ == "__main__":
     RecommendationAssignment()
