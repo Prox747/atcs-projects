@@ -134,7 +134,14 @@ class UserBasedCollaborativeFiltering:
         # Get the top 'num_elements' recommendations for the given userId
         recommendations = self.get_top_x_recommendations(userId, num_elements)
         
-        result_df = pd.DataFrame(recommendations, columns=['Movie Title', 'Predicted Rating'])
+        # Fetch movie titles from movies_df
+        movie_titles = self.df_manager.movies_df.set_index('movieId')['title']
+        
+        # Replace movie IDs with movie titles
+        recommendations_with_titles = [(movie_titles[movieId], rating) for movieId, rating in recommendations]
+        
+        # Create DataFrame from recommendations with movie titles
+        result_df = pd.DataFrame(recommendations_with_titles, columns=['Movie Title', 'Predicted Rating'])
 
         print(f"\nThe top {num_elements} recommendations for user {userId} are:")
         print(result_df.to_string(index=False))
