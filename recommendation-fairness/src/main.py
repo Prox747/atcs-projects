@@ -2,14 +2,14 @@ import time
 import pandas as pd
 import random
 import os
-from df_manager import DataFrameManager
+from ds_manager import DataSetManager
 from recomm_techniques.user_based_collaborative_filtering import UserBasedCollaborativeFiltering
 
 
 class RecommendationAssignment:
     def __init__(self):
-        self.df_manager = DataFrameManager()
-        self.user_based_collaborative_filtering = UserBasedCollaborativeFiltering(self.df_manager)
+        self.ds_manager = DataSetManager()
+        self.user_based_collaborative_filtering = UserBasedCollaborativeFiltering(self.ds_manager)
         
         self.first_assignment()
         
@@ -22,7 +22,7 @@ class RecommendationAssignment:
         print("#################  FIRST ASSIGNMENT  #################\n")
         
         #point a - Shows the few rows of every table and count of elements
-        self.df_manager.show_dataset()
+        self.ds_manager.show_dataset()
         
         # point b - Implemented the Pearson Correlation function and example
         #           to show some results
@@ -44,7 +44,7 @@ class RecommendationAssignment:
     
     def example_user_based_collaborative_filtering(self):
         # Shows for a random user, the 10 most similar users
-        randomId = random.randint(1, self.df_manager.get_users_count())
+        randomId = random.randint(1, self.ds_manager.get_users_count())
         self.user_based_collaborative_filtering.show_top_x_similar_users(randomId, 10)
 
         # Shows the top 10 predictions for the same user

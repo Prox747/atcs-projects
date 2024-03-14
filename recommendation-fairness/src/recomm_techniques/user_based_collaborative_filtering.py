@@ -4,17 +4,17 @@ import time
 import pandas as pd
 
 from numpy import sort
-from df_manager import DataFrameManager
+from ds_manager import DataSetManager
 
 class UserBasedCollaborativeFiltering:
-    def __init__(self, df_manager: DataFrameManager):
-        self.df_manager = df_manager
+    def __init__(self, ds_manager: DataSetManager):
+        self.ds_manager = ds_manager
     
     
     # Calculates Pearson Correlation between two users
     def pearson_correlation(self, userA: int, userB: int):
         # Creates a map containing all common movies between the users and their ratings for each movie
-        common_movies_with_ratings = self.df_manager.get_common_movies_rated_by_users_as_map(userA, userB)
+        common_movies_with_ratings = self.ds_manager.get_common_movies_rated_by_users_as_map(userA, userB)
         
         # will cause division by zero
         # no movies in common, then we cannot
@@ -22,8 +22,8 @@ class UserBasedCollaborativeFiltering:
         if common_movies_with_ratings == {}:
             return 0
 
-        userAMean = self.df_manager.calc_user_ratings_mean(userA)
-        userBMean = self.df_manager.calc_user_ratings_mean(userB)
+        userAMean = self.ds_manager.calc_user_ratings_mean(userA)
+        userBMean = self.ds_manager.calc_user_ratings_mean(userB)
 
         numerator = 0
         sum_of_squared_differences_B = 0 
@@ -55,14 +55,14 @@ class UserBasedCollaborativeFiltering:
         Calculates and returns all the similarity values between
         userId and all the other users
         """
-        return self.get_top_x_similar_users(userId, self.df_manager.get_users_count())
+        return self.get_top_x_similar_users(userId, self.ds_manager.get_users_count())
     
     
     # Calculates the top 'num_elements' similar users to the given userId
     def get_top_x_similar_users(self, userId: int, num_elements: int):
         similar_users = {}
         
-        for otherId in range(1, self.df_manager.get_users_count()):
+        for otherId in range(1, self.ds_manager.get_users_count()):
             if otherId != userId:
                 similar_users[otherId] = self.pearson_correlation(userId, otherId)
         
@@ -87,11 +87,11 @@ class UserBasedCollaborativeFiltering:
     # Calculates the top predicted ratings for the given userId
     def get_top_x_recommendations(self, userId: int, num_elements: int, neighbourhood_size: int = -1):
         # Get all movies that the user has not rated
-        movies_not_rated = self.df_manager.get_movies_not_rated_by_user(userId)
+        movies_not_rated = self.ds_manager.get_movies_not_rated_by_user(userId)
         
         # Get the top 'neighbourhood_size' similar users to userId (40 should be enough)
         if neighbourhood_size is -1:
-            neighbourhood_size = self.df_manager.get_users_count()
+            neighbourhood_size = self.ds_manager.get_users_count()
         neighbourhood_similarities = self.get_top_x_similar_users(userId, neighbourhood_size)
         
         # Calculate the predicted rating for each movie
@@ -115,18 +115,18 @@ class UserBasedCollaborativeFiltering:
         
         for otherId, similarity in similar_users:
             # Get the rating of the user for the movie
-            user_ratings = self.df_manager.get_users_ratings_map().get(otherId)
+            user_ratings = self.ds_manager.get_users_ratings_map().get(otherId)
             rating = user_ratings.get(movieId)
             # For now we skip the user if it has not rated the movie
             if rating is not None:
-                mean = self.df_manager.calc_user_ratings_mean(otherId)
+                mean = self.ds_manager.calc_user_ratings_mean(otherId)
                 numerator += similarity * (rating - mean)
                 denominator += similarity
         
         if denominator == 0:
             return 0
         
-        predicted_rating = self.df_manager.calc_user_ratings_mean(userId) + (numerator / denominator)
+        predicted_rating = self.ds_manager.calc_user_ratings_mean(userId) + (numerator / denominator)
         return predicted_rating
         
 
@@ -136,7 +136,7 @@ class UserBasedCollaborativeFiltering:
         recommendations = self.get_top_x_recommendations(userId, num_elements, neighbourhood_size)
         
         # Fetch movie titles from movies_df
-        movie_titles = self.df_manager.movies_df.set_index('movieId')['title']
+        movie_titles = self.ds_manager.movies_df.set_index('movieId')['title']
         
         # Replace movie IDs with movie titles
         recommendations_with_titles = [(movie_titles[movieId], rating) for movieId, rating in recommendations]

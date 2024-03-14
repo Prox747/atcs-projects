@@ -2,7 +2,7 @@ import os
 import time
 import pandas as pd
 
-class DataFrameManager:
+class DataSetManager:
     def __init__(self):
         self.initialize_dataframes()
         self.ratings_grouped_by_user = self.ratings_df.groupby('userId')
