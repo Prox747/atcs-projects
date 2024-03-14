@@ -85,17 +85,19 @@ class UserBasedCollaborativeFiltering:
         
     
     # Calculates the top predicted ratings for the given userId
-    def get_top_x_recommendations(self, userId: int, num_elements: int):
+    def get_top_x_recommendations(self, userId: int, num_elements: int, neighbourhood_size: int = -1):
         # Get all movies that the user has not rated
         movies_not_rated = self.df_manager.get_movies_not_rated_by_user(userId)
         
-        # Get all the similarity values for every (userId, otherId) pair
-        all_similarities_for_user = self.get_all_sim_for_user(userId)
+        # Get the top 'neighbourhood_size' similar users to userId (40 should be enough)
+        if neighbourhood_size is -1:
+            neighbourhood_size = self.df_manager.get_users_count()
+        neighbourhood_similarities = self.get_top_x_similar_users(userId, neighbourhood_size)
         
         # Calculate the predicted rating for each movie
         predicted_ratings = []
         for movieId in movies_not_rated:
-            rating = self.predict_rating(userId, all_similarities_for_user, movieId)
+            rating = self.predict_rating(userId, neighbourhood_similarities, movieId)
             predicted_ratings.append((movieId, rating))
         
         # Sort the dictionary by values in descending order
@@ -125,14 +127,14 @@ class UserBasedCollaborativeFiltering:
         if denominator == 0:
             return 0
         
-        predicted_rating = self.df_manager.calc_user_ratings_mean(otherId) + (numerator / denominator)
+        predicted_rating = self.df_manager.calc_user_ratings_mean(userId) + (numerator / denominator)
         return predicted_rating
         
 
     # Shows the top 'num_elements' recommendations for the given userId
-    def show_top_x_recommendations(self, userId: int, num_elements: int):
+    def show_top_x_recommendations(self, userId: int, num_elements: int, neighbourhood_size: int = -1):
         # Get the top 'num_elements' recommendations for the given userId
-        recommendations = self.get_top_x_recommendations(userId, num_elements)
+        recommendations = self.get_top_x_recommendations(userId, num_elements, neighbourhood_size)
         
         # Fetch movie titles from movies_df
         movie_titles = self.df_manager.movies_df.set_index('movieId')['title']
