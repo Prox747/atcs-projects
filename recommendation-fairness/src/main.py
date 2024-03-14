@@ -52,7 +52,7 @@ class RecommendationAssignment:
               " similarities between the user we want to suggest movies to and \n" +
               " all the other users - so it might take a few seconds to output )")   
         start_time = time.time()
-        self.user_based_collaborative_filtering.show_top_x_recommendations(1, 10)
+        self.user_based_collaborative_filtering.show_top_x_recommendations(randomId, 10)
         end_time = time.time()
 
         elapsed_time = end_time - start_time
