@@ -36,9 +36,10 @@ class RecommendationAssignment:
 
     
     def example_similarity(self, userA: int, userB: int):
+        similarity_w = self.user_based_collaborative_filtering.pearson_correlation_weighted(userA, userB)
         similarity = self.user_based_collaborative_filtering.pearson_correlation(userA, userB)
         print("\n\n_______________________EXAMPLE PEARSON SIMILARITY BETWEEN TWO USERS_____________________________")
-        print("\nThe similarity between user:" + str(userA) + " and user:" + str(userB) + " (using Pearson similarity) is: " + str(similarity))
+        print("\nThe similarity between user:" + str(userA) + " and user:" + str(userB) + " (using Pearson similarity) is: " + str(similarity) + " normal" + str(similarity_w) + " weighted")
         print("________________________________________________________________________________________________\n")
         
     

@@ -1,10 +1,10 @@
 import math
-import random
 import time
 import pandas as pd
-
+import numpy as np
 from numpy import sort
 from ds_manager import DataSetManager
+
 
 class UserBasedCollaborativeFiltering:
     def __init__(self, ds_manager: DataSetManager):
@@ -31,9 +31,11 @@ class UserBasedCollaborativeFiltering:
 
         # {MOVIEID, (RatingUserA, RatingUserB)}
         for ratings in common_movies_with_ratings.values():
-            numerator += (ratings[0] - userAMean)*(ratings[1] - userBMean)
-            sum_of_squared_differences_A += (ratings[0] - userAMean) ** 2
-            sum_of_squared_differences_B += (ratings[1] - userBMean) ** 2
+            rating_diff_A = ratings[0] - userAMean
+            rating_diff_B = ratings[1] - userBMean
+            numerator += rating_diff_A * rating_diff_B
+            sum_of_squared_differences_A += rating_diff_A ** 2
+            sum_of_squared_differences_B += rating_diff_B ** 2
             
         denominator = (math.sqrt(sum_of_squared_differences_A)) * (math.sqrt(sum_of_squared_differences_B))
 
@@ -49,6 +51,55 @@ class UserBasedCollaborativeFiltering:
 
         return similarity
     
+
+    def pearson_correlation_weighted(self, userA: int, userB: int):
+        """
+        Calculates the Pearson Correlation between two users, but with variance weights
+        
+        The variance weights are calculated as the inverse variance of the ratings for a movie
+        
+        """
+        # Creates a map containing all common movies between the users and their ratings for each movie
+        common_movies_with_ratings = self.ds_manager.get_common_movies_rated_by_users_as_map(userA, userB)
+        
+        movie2variance = self.ds_manager.calc_per_movie_variance()
+        
+        # If no common movies, return 0
+        if not common_movies_with_ratings:
+            return 0
+
+        userAMean = self.ds_manager.calc_user_ratings_mean(userA)
+        userBMean = self.ds_manager.calc_user_ratings_mean(userB)
+
+        numerator = 0
+        sum_of_squared_differences_B = 0 
+        sum_of_squared_differences_A = 0
+
+        # Calculate Pearson correlation
+        for movie, (ratingA, ratingB) in common_movies_with_ratings.items():
+            rating_diff_A = ratingA - userAMean
+            rating_diff_B = ratingB - userBMean
+            numerator += rating_diff_A * rating_diff_B
+            sum_of_squared_differences_A += (rating_diff_A ** 2) * (1 / movie2variance[movie])
+            sum_of_squared_differences_B += (rating_diff_B ** 2) * (1 / movie2variance[movie])
+
+        print(movie2variance)
+        
+        sum_of_movie_ratings_variance = movie2variance.sum()
+
+        denominator = (math.sqrt(sum_of_squared_differences_A / sum_of_movie_ratings_variance) *
+                       math.sqrt(sum_of_squared_differences_B / sum_of_movie_ratings_variance))
+
+        if denominator == 0:
+            return 0
+        
+        similarity = numerator / denominator
+        
+        # Ensure similarity is within [-1, 1]
+        #similarity = max(-1, min(similarity, 1))
+
+        return similarity
+
     
     def get_all_sim_for_user(self, userId: int):
         """
@@ -90,7 +141,7 @@ class UserBasedCollaborativeFiltering:
         movies_not_rated = self.ds_manager.get_movies_not_rated_by_user(userId)
         
         # Get the top 'neighbourhood_size' similar users to userId (40 should be enough)
-        if neighbourhood_size is -1:
+        if neighbourhood_size == -1:
             neighbourhood_size = self.ds_manager.get_users_count()
         neighbourhood_similarities = self.get_top_x_similar_users(userId, neighbourhood_size)
         
@@ -145,7 +196,7 @@ class UserBasedCollaborativeFiltering:
         result_df = pd.DataFrame(recommendations_with_titles, columns=['Movie Title', 'Predicted Rating'])
 
         print(f"\nThe top {num_elements} recommendations for user {userId}")
-        print(f"(for a neighbourhood of {neighbourhood_size if neighbourhood_size is not -1 else 'all the'} users):")
+        print(f"(for a neighbourhood of {neighbourhood_size if neighbourhood_size == -1 else 'all the'} users):")
         print(result_df.to_string(index=False))
         
             

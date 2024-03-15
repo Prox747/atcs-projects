@@ -7,6 +7,7 @@ class DataSetManager:
         self.initialize_dataframes()
         self.ratings_grouped_by_user = self.ratings_df.groupby('userId')
         self.user2ratings = self.create_users_ratings_map()
+        self.per_movie_variance = self.calc_per_movie_variance()
 
     
     def initialize_dataframes(self):
@@ -111,6 +112,17 @@ class DataSetManager:
             Map: A map userId2(movieId2rating)
         """
         return self.user2ratings.get(userId)
+
+
+    # Calculates the variance of ratings for each movie
+    def calc_per_movie_variance(self):
+        """
+        Calculates the variance of ratings for each movie.
+        
+        Returns:
+            Series: A series of movieId2variance
+        """
+        return self.ratings_df.groupby('movieId').rating.var()
 
 
     def get_common_movies_rated_by_users_as_map(self, userA: int, userB: int):
