@@ -8,6 +8,7 @@ class DataSetManager:
         self.ratings_grouped_by_user = self.ratings_df.groupby('userId')
         self.user2ratings = self.create_users_ratings_map()
         self.per_movie_variance = self.calc_per_movie_variance()
+        self.movie2norm_var = self.get_normalized_variances()
 
     
     def initialize_dataframes(self):
@@ -123,6 +124,25 @@ class DataSetManager:
             Series: A series of movieId2variance
         """
         return self.ratings_df.groupby('movieId').rating.var()
+    
+    
+    def get_normalized_variances(self):
+        min = self.per_movie_variance.min()
+        max = self.per_movie_variance.max()
+        
+        normalized_movie_variances = {}
+        
+        for movie, variance in self.per_movie_variance.dropna().items():
+            normalized_movie_variances[movie] = (variance - min) / (max - min)
+            
+        return normalized_movie_variances
+    
+    def get_norm_var_mean(self):
+        varsum = 0
+        for movie, var in self.get_normalized_variances().items():
+            varsum += var
+        
+        return varsum/len(self.get_normalized_variances())
 
 
     def get_common_movies_rated_by_users_as_map(self, userA: int, userB: int):

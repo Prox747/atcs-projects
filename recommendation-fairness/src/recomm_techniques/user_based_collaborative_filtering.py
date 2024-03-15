@@ -62,7 +62,7 @@ class UserBasedCollaborativeFiltering:
         # Creates a map containing all common movies between the users and their ratings for each movie
         common_movies_with_ratings = self.ds_manager.get_common_movies_rated_by_users_as_map(userA, userB)
         
-        movie2variance = self.ds_manager.calc_per_movie_variance()
+        movie2variance_normalized = self.ds_manager.movie2norm_var
         
         # If no common movies, return 0
         if not common_movies_with_ratings:
@@ -77,18 +77,18 @@ class UserBasedCollaborativeFiltering:
 
         # Calculate Pearson correlation
         for movie, (ratingA, ratingB) in common_movies_with_ratings.items():
+            # Calculate differences from mean ratings
             rating_diff_A = ratingA - userAMean
             rating_diff_B = ratingB - userBMean
-            numerator += rating_diff_A * rating_diff_B
-            sum_of_squared_differences_A += (rating_diff_A ** 2) * (1 / movie2variance[movie])
-            sum_of_squared_differences_B += (rating_diff_B ** 2) * (1 / movie2variance[movie])
+            # Calculate weight for the current movie based on its variance
+            weight = movie2variance_normalized[movie]
+            
+            numerator += rating_diff_A * rating_diff_B * weight
+            sum_of_squared_differences_A += (rating_diff_A ** 2) * weight
+            sum_of_squared_differences_B += (rating_diff_B ** 2) * weight
+                
 
-        print(movie2variance)
-        
-        sum_of_movie_ratings_variance = movie2variance.sum()
-
-        denominator = (math.sqrt(sum_of_squared_differences_A / sum_of_movie_ratings_variance) *
-                       math.sqrt(sum_of_squared_differences_B / sum_of_movie_ratings_variance))
+        denominator = math.sqrt(sum_of_squared_differences_A) * math.sqrt(sum_of_squared_differences_B)
 
         if denominator == 0:
             return 0
@@ -110,12 +110,14 @@ class UserBasedCollaborativeFiltering:
     
     
     # Calculates the top 'num_elements' similar users to the given userId
-    def get_top_x_similar_users(self, userId: int, num_elements: int):
+    def get_top_x_similar_users(self, userId: int, num_elements: int, sim_method: str = "pcc"):
         similar_users = {}
+        
+        sim_func = self.pearson_correlation if sim_method == "pcc" else self.pearson_correlation_weighted
         
         for otherId in range(1, self.ds_manager.get_users_count()):
             if otherId != userId:
-                similar_users[otherId] = self.pearson_correlation(userId, otherId)
+                similar_users[otherId] = sim_func(userId, otherId)
         
         # Sort the dictionary by values in descending order
         # key=lambda x: x[1] -> sort by the value
@@ -136,14 +138,14 @@ class UserBasedCollaborativeFiltering:
         
     
     # Calculates the top predicted ratings for the given userId
-    def get_top_x_recommendations(self, userId: int, num_elements: int, neighbourhood_size: int = -1):
+    def get_top_x_recommendations(self, userId: int, num_elements: int, neighbourhood_size: int = -1, sim_method: str = "pcc"):
         # Get all movies that the user has not rated
         movies_not_rated = self.ds_manager.get_movies_not_rated_by_user(userId)
         
         # Get the top 'neighbourhood_size' similar users to userId (40 should be enough)
         if neighbourhood_size == -1:
             neighbourhood_size = self.ds_manager.get_users_count()
-        neighbourhood_similarities = self.get_top_x_similar_users(userId, neighbourhood_size)
+        neighbourhood_similarities = self.get_top_x_similar_users(userId, neighbourhood_size, sim_method)
         
         # Calculate the predicted rating for each movie
         predicted_ratings = []
@@ -182,9 +184,9 @@ class UserBasedCollaborativeFiltering:
         
 
     # Shows the top 'num_elements' recommendations for the given userId
-    def show_top_x_recommendations(self, userId: int, num_elements: int, neighbourhood_size: int = -1):
+    def show_top_x_recommendations(self, userId: int, num_elements: int, neighbourhood_size: int = -1, sim_method: str = "pcc"):
         # Get the top 'num_elements' recommendations for the given userId
-        recommendations = self.get_top_x_recommendations(userId, num_elements, neighbourhood_size)
+        recommendations = self.get_top_x_recommendations(userId, num_elements, neighbourhood_size, sim_method)
         
         # Fetch movie titles from movies_df
         movie_titles = self.ds_manager.movies_df.set_index('movieId')['title']
